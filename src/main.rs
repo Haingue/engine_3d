@@ -1,8 +1,11 @@
 pub mod core;
 pub mod tools;
 
-use std::{io, time};
+use std::time::Duration;
+use std::{default, io, time};
 use std::thread::sleep;
+
+use crossterm::event::{poll, read, Event, KeyCode};
 
 use crate::core::engine::Engine;
 use crate::core::math::{Vec2, Triangle};
@@ -29,10 +32,55 @@ fn main() {
         engine.draw();
         sleep(time::Duration::from_millis(10))
     }
+
+    // loop_print_events();
+    return
 }
 
-fn wait_key () {
-    println!("\n\nPress a key to start");
+fn wait_key () -> io::Result<()> {
+    println!("\n\nPress the key 's' to start");
+    /*
     let mut buffer = String::new();
     io::stdin().read_line(&mut buffer);
+    */
+    loop {
+        match read()? {
+            Event::FocusGained => continue,
+            Event::FocusLost => continue,
+            Event::Key(event) => {
+                if event.code == KeyCode::Char('s') {
+                     break;
+                }
+                continue;
+            },
+            Event::Mouse(event) => continue,
+            Event::Paste(data) => continue,
+            Event::Resize(width, height) => continue,
+        }
+    }
+    Ok(())
+}
+
+fn loop_print_events() -> io::Result<()> {
+    loop {
+        // `poll()` waits for an `Event` for a given time period
+        if poll(Duration::from_millis(5000))? {
+            // It's guaranteed that the `read()` won't block when the `poll()`
+            // function returns `true`
+            match read()? {
+                Event::FocusGained => {
+                    println!("FocusGained");
+                    break;
+                },
+                Event::FocusLost => println!("FocusLost"),
+                Event::Key(event) => println!("{:?}", event),
+                Event::Mouse(event) => println!("{:?}", event),
+                Event::Paste(data) => println!("Pasted {:?}", data),
+                Event::Resize(width, height) => println!("New size {}x{}", width, height),
+            }
+        } else {
+            // Timeout expired and no `Event` is available
+        }
+    }
+    Ok(())
 }
