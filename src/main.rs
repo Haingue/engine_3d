@@ -1,29 +1,24 @@
 pub mod core;
 pub mod tools;
 
+use std::fmt::format;
 use std::time::Duration;
-use std::{default, io, time};
+use std::{io, time};
 use std::thread::sleep;
 
-use crossterm::event::{poll, read, Event, KeyCode};
+use crossterm::event::{poll, read, Event, KeyCode, KeyEvent, KeyModifiers, ModifierKeyCode};
 
 use crate::core::engine::Engine;
-use crate::core::math::{Vec2, Triangle};
-use std::sync::mpsc::Receiver;
-use std::{io, time, pin};
 use std::fs::File;
 use std::io::{Result, Write};
-use std::ops::{Add, AddAssign, Mul};
-use std::sync::mpsc::{Receiver, self, TryRecvError};
-use std::time::{Duration, Instant};
-use std::{io, time, pin, thread};
-use std::thread::sleep;
+use std::ops::Mul;
+use std::time::Instant;
 
-use crate::core::engine::{Engine, Camera};
+use crate::core::engine::Camera;
 use crate::core::math::triangle::Triangle3D;
 use crate::core::math::vector::Vec3;
 use crate::core::math::{vector::Vec2, triangle::Triangle2D};
-use crate::tools::configuration::{Configuration};
+use crate::tools::configuration::Configuration;
 
 fn main() {
     println!("Welcome on Rust 3D engine !");
@@ -32,12 +27,16 @@ fn main() {
     let mut engine: Engine = Engine::new(configuration.width, configuration.height - 1);
     println!("Engine: {:?}", engine.to_string());
 
+    // loop_print_events();
+    // wait_key();
+
     // demo_1(&mut engine);
     // demo_2(&mut engine);
     // demo_3(&mut engine);
     // demo_4(&mut engine);
-    demo_5(&mut engine);
-    // demo_6(&mut engine);
+    // demo_5(&mut engine);
+    demo_6(&mut engine);
+    
 }
 
 fn demo_1 (engine: &mut Engine) {
@@ -201,31 +200,57 @@ fn demo_6 (engine: &mut Engine) {
     }
 }
 
-fn inputs (cam: &mut Camera) {
-    let mut buffer: String = String::new();
-    io::stdin().read_line(&mut buffer).unwrap();
-
-    if buffer.eq("down") {
-        if cam.pitch >= 1.57 {
-            cam.pitch -= 0.01;
-        }
+fn inputs (cam: &mut Camera) -> io::Result<()> {
+    match read()? {
+        Event::Key(event) => {
+            match event.code {
+                KeyCode::Down => {
+                    if cam.pitch >= 1.57 {
+                        cam.pitch -= 0.01;
+                    }
+                },
+                KeyCode::Up => {
+                    if cam.pitch < 1.57 {
+                        cam.pitch += 0.01;
+                    }
+                },
+                KeyCode::Left => {
+                    cam.yaw += 0.01;
+                },
+                KeyCode::Right => {
+                    cam.yaw -= 0.01;
+                },
+                KeyCode::Char('z') => {
+                    cam.position.z += 0.1;
+                },
+                KeyCode::Char('s') => {
+                    cam.position.z -= 0.1;
+                },
+                KeyCode::Char('q') => {
+                    cam.position.x -= 0.1;
+                },
+                KeyCode::Char('d') => {
+                    cam.position.x += 0.1;
+                },
+                KeyCode::Char(' ') => {
+                    if (event.modifiers == KeyModifiers::CONTROL) {
+                        cam.position.y -= 0.1;
+                    } else {
+                        cam.position.y += 0.1;
+                    }
+                },
+                _ => {}
+            }
+            log(format!("KeyEvent: [code={:?}, modifier={:?}]", event.code, event.modifiers));
+        },
+        _ => {},
     }
-    if buffer.eq("up") {
-        if cam.pitch < 1.57 {
-            cam.pitch += 0.01;
-        }
-    }
-    if buffer.eq("left") {
-        cam.yaw += 0.01;
-    }
-    if buffer.eq("right") {
-        cam.yaw -= 0.01;
-    }
+    Ok(())
 }
 
-fn log (msg: String) -> Result<()> {
+fn log (msg: String) {
     let mut f: File = File::options().append(true).open("engine_3D.log")?;
-    writeln!(&mut f, "{msg}")?;
+    writeln!(&mut f, "{msg}");
 }
 
 fn wait_key () -> io::Result<()> {
@@ -240,7 +265,7 @@ fn wait_key () -> io::Result<()> {
             Event::FocusLost => continue,
             Event::Key(event) => {
                 if event.code == KeyCode::Char('s') {
-                     break;
+                    break;
                 }
                 continue;
             },
