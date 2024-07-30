@@ -30,7 +30,7 @@ impl Triangle2D {
       v1: self.v1.toScreen(engine),
       v2: self.v2.toScreen(engine),
       v3: self.v3.toScreen(engine)
-     }
+    }
   }
 }
 

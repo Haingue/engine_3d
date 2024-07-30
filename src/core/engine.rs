@@ -1,6 +1,6 @@
 use std::io::{self, SeekFrom};
 
-use super::math::{vector::{Vec2, Vec3}, triangle::{Triangle2D, Triangle3D, self}};
+use super::math::{vector::{Vec2, Vec3}, triangle::{Triangle2D, Triangle3D}};
 
 #[derive(Debug)]
 pub struct Engine {
@@ -37,7 +37,7 @@ impl Engine {
     match io::stdin().read_line(&mut buffer) {
         Ok(n) => {
             println!("{n} bytes read");
-            println!("{buffer}");
+            println!("keys: {buffer}");
         }
         Err(error) => println!("error: {error}"),
     }
@@ -121,7 +121,7 @@ impl Camera {
     Camera {position, pitch, yaw, focal_length}
   }
   pub fn get_look_at_direction () -> Vec3 {
-
+    panic!("Not yet implemented")
   }
   pub fn get_forward_direction (&mut self) -> Vec3 {
     Vec3 {

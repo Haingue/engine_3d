@@ -10,8 +10,8 @@ impl Configuration {
     if let Some((w, h)) = term_size::dimensions() {
       Configuration {
         width: w,
-        height: h - 1,
-        buffer_size: w * (h - 1)
+        height: h - 0,
+        buffer_size: w * (h - 0)
       }
     } else {
       panic!("Unable to get term size !")

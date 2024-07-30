@@ -97,7 +97,7 @@ impl ops::Div<f32> for Vec3 {
 }
 impl ops::Add<Vec3> for Vec3 {
   type Output = Vec3;
-  fn add(self, v_rhs: Vec3) -> Vec3 {
+  fn add(self, v_rhs: Vec3) -> Self::Output {
     Vec3 {
       x: self.x + v_rhs.x,
       y: self.y + v_rhs.y,

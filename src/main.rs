@@ -1,7 +1,6 @@
 pub mod core;
 pub mod tools;
 
-<<<<<<< HEAD
 use std::time::Duration;
 use std::{default, io, time};
 use std::thread::sleep;
@@ -10,16 +9,20 @@ use crossterm::event::{poll, read, Event, KeyCode};
 
 use crate::core::engine::Engine;
 use crate::core::math::{Vec2, Triangle};
-=======
 use std::sync::mpsc::Receiver;
 use std::{io, time, pin};
+use std::fs::File;
+use std::io::{Result, Write};
+use std::ops::{Add, AddAssign, Mul};
+use std::sync::mpsc::{Receiver, self, TryRecvError};
+use std::time::{Duration, Instant};
+use std::{io, time, pin, thread};
 use std::thread::sleep;
 
 use crate::core::engine::{Engine, Camera};
 use crate::core::math::triangle::Triangle3D;
 use crate::core::math::vector::Vec3;
 use crate::core::math::{vector::Vec2, triangle::Triangle2D};
->>>>>>> 872ccc8 (FEAT: add 3d function)
 use crate::tools::configuration::{Configuration};
 
 fn main() {
@@ -28,12 +31,13 @@ fn main() {
     println!("Configuration: {:?}", configuration);
     let mut engine: Engine = Engine::new(configuration.width, configuration.height - 1);
     println!("Engine: {:?}", engine.to_string());
-   
+
     // demo_1(&mut engine);
     // demo_2(&mut engine);
     // demo_3(&mut engine);
     // demo_4(&mut engine);
     demo_5(&mut engine);
+    // demo_6(&mut engine);
 }
 
 fn demo_1 (engine: &mut Engine) {
@@ -86,39 +90,142 @@ fn demo_3 (engine: &mut Engine) {
 
 fn demo_4 (engine: &mut Engine) {
     let mut triangle_1 = Triangle3D::new(
-        Vec3::new( -0.5,    -0.5,   0.50),
-        Vec3::new(  0.0,    0.5,    0.50),
-        Vec3::new(  0.5,    -0.5,   0.50));
+        Vec3::new( -0.5,    -0.5,   0.0),
+        Vec3::new(  0.0,    0.5,    0.0),
+        Vec3::new(  0.5,    -0.5,   0.0));
+    let mut triangle_2 = Triangle3D::new(
+        Vec3::new( -0.5,    -0.5,   0.0),
+        Vec3::new(  0.0,    0.5,    0.0),
+        Vec3::new(  0.5,    -0.5,   0.0));
+    let mut triangle_3 = Triangle3D::new(
+        Vec3::new( -0.5,    -0.5,   0.0),
+        Vec3::new(  0.0,    0.5,    0.0),
+        Vec3::new(  0.5,    -0.5,   0.0));
     println!("Try triangle: {:?}", triangle_1);
-    let mut t: f32 = 0.0;
+    let mut last = Instant::now();
+    let mut rotation: f32 = 0.0;
+    let mut distance: f32 = 1.0;
+    let mut direction: bool = false;
     loop {
+        let current = Instant::now();
+        let dt = current.duration_since(last).as_secs_f32().mul(100.0);
+        if direction {
+            distance-=0.001;
+            if distance < 0.5 {
+                direction = false
+            }
+        } else {
+            distance+=0.001;
+            if distance > 1.5 {
+                direction = true
+            }
+        }
+        let _ = log(format!("last: {:?}, current: {:?}, dt: {:?}, rot: {:?}, nrot: {:?}, time: {:?}", last, current, dt, rotation, 0.001 * dt, Instant::now().elapsed().as_nanos()));
+        last = current;
+        rotation += 0.01 * dt;
+        // rotation += 0.001;
+        triangle_1.v1.z=distance;
+        triangle_1.v2.z=distance;
+        triangle_1.v3.z=distance;
         engine.clear(' ');
-        t += 0.01;
         engine.put_triangle(&triangle_1
-            .rotation_y(t)
+            .rotation_y(rotation)
+            .rotation_x(-rotation)
+            .translate(Vec3{x:4.0, y:0.0, z:2.0})
+            .projection(1.0)
+            .toScreen(&engine), '@');
+        engine.put_triangle(&triangle_2
+            .rotation_y(rotation)
+            .translate(Vec3{x:-4.0, y:0.0, z:2.0})
+            .projection(1.0)
+            .toScreen(&engine), '@');
+        engine.put_triangle(&triangle_3
+            .rotation_x(rotation)
             .translate(Vec3{x:0.0, y:0.0, z:2.0})
             .projection(1.0)
             .toScreen(&engine), '@');
         engine.draw();
-        //sleep(time::Duration::from_millis(100))
+        sleep(time::Duration::from_millis(1))
     }
 }
 
 fn demo_5 (engine: &mut Engine) {
+    let mut carreMesh = vec![
+        Triangle3D::new(
+            Vec3::new( -0.5,    -0.5,   1.0),
+            Vec3::new(  -0.5,    0.5,    1.0),
+            Vec3::new(  0.5,    0.5,   1.0)),
+        Triangle3D::new(
+            Vec3::new( -0.5,    -0.5,   1.0),
+            Vec3::new(  0.5,    0.5,    1.0),
+            Vec3::new(  0.5,    -0.5,   1.0))
+    ];
+    let mut cam = Camera { position: Vec3 {x: 0.0, y:0.0, z: 0.0 }, pitch: 0.0, yaw: 0.0, focal_length: 1.0 };
+    let mut last = Instant::now();
+    loop {
+        for _ in 0..300 {
+            log(format!("yaw: {:?}, pitch: {:?}, position: {:?}", cam.yaw, cam.pitch, cam.position));
+            engine.clear(' ');
+            let current = Instant::now();
+            let dt = current.duration_since(last).as_secs_f32().mul(100.0);
+            cam.yaw+=0.00001 * dt;
+            engine.put_mesh(&carreMesh, &cam);
+            engine.draw();
+            println!("pos: {}", cam.position.z);
+        }
+        for _ in 0..300 {
+            log(format!("yaw: {:?}, pitch: {:?}, position: {:?}", cam.yaw, cam.pitch, cam.position));
+            engine.clear(' ');
+            let current = Instant::now();
+            let dt = current.duration_since(last).as_secs_f32().mul(100.0);
+            cam.yaw-=0.00001 * dt;
+            engine.put_mesh(&carreMesh, &cam);
+            engine.draw();
+            println!("pos: {}", cam.position.z);
+        }
+    }
+}
+
+fn demo_6 (engine: &mut Engine) {
     let mut mesh = vec![];
-    let mut triangle_1 = Triangle3D::new(
+    mesh.push(Triangle3D::new(
         Vec3::new( -0.5,    -0.5,   0.50),
         Vec3::new(  0.0,    0.5,    0.50),
-        Vec3::new(  0.5,    -0.5,   0.50));
-    mesh.push(triangle_1);
-    println!("Try triangle: {:?}", triangle_1);
-    let cam = Camera { position: Vec3 {x: 0.0, y:0.0, z: 0.0 }, pitch: 0.0, yaw: 0.0, focal_length: 1.0 };
+        Vec3::new(  0.5,    -0.5,   0.50)));
+    let mut cam = Camera { position: Vec3 {x: 0.0, y:0.0, z: 0.0 }, pitch: 0.0, yaw: 0.0, focal_length: 1.0 };
     loop {
         engine.clear(' ');
+        inputs(&mut cam);
         engine.put_mesh(&mesh, &cam);
         engine.draw();
-        //sleep(time::Duration::from_millis(100))
     }
+}
+
+fn inputs (cam: &mut Camera) {
+    let mut buffer: String = String::new();
+    io::stdin().read_line(&mut buffer).unwrap();
+
+    if buffer.eq("down") {
+        if cam.pitch >= 1.57 {
+            cam.pitch -= 0.01;
+        }
+    }
+    if buffer.eq("up") {
+        if cam.pitch < 1.57 {
+            cam.pitch += 0.01;
+        }
+    }
+    if buffer.eq("left") {
+        cam.yaw += 0.01;
+    }
+    if buffer.eq("right") {
+        cam.yaw -= 0.01;
+    }
+}
+
+fn log (msg: String) -> Result<()> {
+    let mut f: File = File::options().append(true).open("engine_3D.log")?;
+    writeln!(&mut f, "{msg}")?;
 }
 
 fn wait_key () -> io::Result<()> {
