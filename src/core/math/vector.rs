@@ -105,6 +105,34 @@ impl ops::Add<Vec3> for Vec3 {
     }
   }
 }
+impl ops::AddAssign<Vec3> for Vec3 {
+  fn add_assign(&mut self, v_rhs: Vec3) {
+    *self = Vec3 {
+      x: self.x + v_rhs.x,
+      y: self.y + v_rhs.y,
+      z: self.z + v_rhs.z
+    };
+  }
+}
+impl ops::Sub<Vec3> for Vec3 {
+  type Output = Vec3;
+  fn sub(self, v_rhs: Vec3) -> Self::Output {
+    Vec3 {
+      x: self.x - v_rhs.x,
+      y: self.y - v_rhs.y,
+      z: self.z - v_rhs.z
+    }
+  }
+}
+impl ops::SubAssign<Vec3> for Vec3 {
+  fn sub_assign(&mut self, v_rhs: Vec3) {
+    *self = Vec3 {
+      x: self.x - v_rhs.x,
+      y: self.y - v_rhs.y,
+      z: self.z - v_rhs.z
+    };
+  }
+}
 
 impl Vec3 {
   pub fn new (x: f32, y:f32, z:f32) -> Vec3 {

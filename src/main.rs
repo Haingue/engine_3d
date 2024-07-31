@@ -1,16 +1,15 @@
 pub mod core;
 pub mod tools;
 
-use std::fmt::format;
 use std::time::Duration;
 use std::{io, time};
 use std::thread::sleep;
 
-use crossterm::event::{poll, read, Event, KeyCode, KeyEvent, KeyModifiers, ModifierKeyCode};
+use crossterm::event::{poll, read, Event, KeyCode, KeyModifiers};
 
 use crate::core::engine::Engine;
 use std::fs::File;
-use std::io::{Result, Write};
+use std::io::Write;
 use std::ops::Mul;
 use std::time::Instant;
 
@@ -35,12 +34,13 @@ fn main() {
     // demo_3(&mut engine);
     // demo_4(&mut engine);
     // demo_5(&mut engine);
-    demo_6(&mut engine);
+    // demo_6(&mut engine);
+    demo_7(&mut engine);
     
 }
 
 fn demo_1 (engine: &mut Engine) {
-    engine.wait_key();
+    wait_key();
     let mut triangle_1 = Triangle2D::new(Vec2::new(1.0, 3.0), Vec2::new(1.0, 8.0), Vec2::new(20.0, 20.0));
     let mut triangle_2 = Triangle2D::new(Vec2::new(100.0, 1.0), Vec2::new(80.0, 5.0), Vec2::new(90.0, 10.0));
     println!("Try triangle: {:?}", triangle_1);
@@ -194,13 +194,41 @@ fn demo_6 (engine: &mut Engine) {
     let mut cam = Camera { position: Vec3 {x: 0.0, y:0.0, z: 0.0 }, pitch: 0.0, yaw: 0.0, focal_length: 1.0 };
     loop {
         engine.clear(' ');
-        inputs(&mut cam);
+        cam_inputs(&mut cam);
         engine.put_mesh(&mesh, &cam);
         engine.draw();
     }
 }
 
-fn inputs (cam: &mut Camera) -> io::Result<()> {
+fn demo_7 (engine: &mut Engine) -> io::Result<()> {
+    let mut carre = vec![
+        Triangle3D::new(
+        Vec3::new(-0.5,    -0.5,   1.0),
+        Vec3::new(-0.5,     0.5,   1.0),
+        Vec3::new( 0.5,     0.5,   1.0)),
+        Triangle3D::new(
+        Vec3::new(-0.5,    -0.5,   1.0),
+        Vec3::new( 0.5,     0.5,   1.0),
+        Vec3::new( 0.5,    -0.5,   1.0)),
+    ];
+    let mut cam = Camera { position: Vec3 {x: 0.0, y:0.0, z: 0.0 }, pitch: 0.0, yaw: 0.0, focal_length: 1.0 };
+    let mut last: Instant = Instant::now();
+    loop {
+        let current_time: Instant = Instant::now();
+        let delta_time: f32 = (current_time - last).as_millis() as f32;
+        last = current_time;
+
+        engine.clear(' ');
+        if poll(Duration::from_millis(10))? {
+            cam.move_from_inputs(delta_time);
+        }
+        engine.put_mesh(&carre, &cam);
+        engine.draw();
+        log(format!("yaw: {:?}, pitch: {:?}, position: {:?}, delta_time= {:?}, current_time={:?}", cam.yaw, cam.pitch, cam.position, delta_time, (current_time - last).as_millis() as f32));
+    }
+}
+
+fn cam_inputs (cam: &mut Camera) -> io::Result<()> {
     match read()? {
         Event::Key(event) => {
             match event.code {
@@ -226,10 +254,10 @@ fn inputs (cam: &mut Camera) -> io::Result<()> {
                 KeyCode::Char('s') => {
                     cam.position.z -= 0.1;
                 },
-                KeyCode::Char('q') => {
+                KeyCode::Char('d') => {
                     cam.position.x -= 0.1;
                 },
-                KeyCode::Char('d') => {
+                KeyCode::Char('q') => {
                     cam.position.x += 0.1;
                 },
                 KeyCode::Char(' ') => {
@@ -248,9 +276,36 @@ fn inputs (cam: &mut Camera) -> io::Result<()> {
     Ok(())
 }
 
-fn log (msg: String) {
-    let mut f: File = File::options().append(true).open("engine_3D.log")?;
-    writeln!(&mut f, "{msg}");
+fn rotation_inputs (vec: &mut Vec3) -> io::Result<()> {
+    match read()? {
+        Event::Key(event) => {
+            match event.code {
+                KeyCode::Down => {
+                    vec.rotation_x(vec.x - 0.01);
+                },
+                KeyCode::Up => {
+                    vec.rotation_x(vec.x + 0.01);
+                },
+                KeyCode::Left => {
+                    vec.rotation_y(vec.y + 0.01);
+                },
+                KeyCode::Right => {
+                    vec.rotation_y(vec.y - 0.01);
+                }
+                _ => {}
+            }
+            log(format!("KeyEvent: [code={:?}, modifier={:?}]", event.code, event.modifiers));
+        },
+        _ => {},
+    }
+    Ok(())
+}
+
+fn log (msg: String) -> Result<(), std::io::Error> {
+    println!("{}", msg);
+    // let mut f: File = File::options().append(true).open("engine_3D.log")?;
+    // writeln!(&mut f, "{}", msg);
+    Ok(())
 }
 
 fn wait_key () -> io::Result<()> {
