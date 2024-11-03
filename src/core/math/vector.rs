@@ -158,8 +158,16 @@ impl Vec3 {
     Vec3 {x, y: self.y, z}
   }
 
+  pub fn length (self) -> f32 {
+    f32::sqrt(self.x*self.x + self.y*self.y + self.z*self.z)
+  }
+
+  pub fn length2 (self) -> f32 {
+    self.x*self.x + self.y*self.y + self.z*self.z
+  }
+
   pub fn normalize (self) -> Vec3 {
-    let norm: f32 = f32::sqrt(self.x*self.x + self.y*self.y + self.z*self.z);
+    let norm: f32 = self.length();
     Vec3 {
       x: self.x / norm,
       y: self.y / norm,

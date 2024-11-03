@@ -1,4 +1,4 @@
-use std::{io::{self}, ops::{Add, AddAssign, Mul}};
+use std::{cmp::Ordering, io::{self}, ops::{Add, AddAssign, Mul}};
 
 use crossterm::event::{read, Event, KeyCode, KeyModifiers};
 
@@ -152,18 +152,32 @@ impl Engine {
     panic!("TODO");
   }
 
-  pub fn put_mesh (&mut self, mesh: &Vec<Triangle3D>, cam: &Camera, light_source: &LightSource) {
+  pub fn distance_triangle_camera (&self, triangle: Triangle3D, cam: &Camera) -> f32 {
+    let position: Vec3 = ((triangle.v1+triangle.v2+triangle.v3)*(1.0/3.0)) - cam.position;
+    return position.length2();
+  }
+
+  pub fn put_mesh (&mut self, mut mesh: Vec<Triangle3D>, cam: &Camera, light_source: &LightSource) {
+    // sort triangle by distance to draw near traiangle at the end
+    mesh.sort_by(
+      |&a, &b| {
+        let distance_a = self.distance_triangle_camera(a, cam);
+        let distance_b = self.distance_triangle_camera(b, cam);
+        distance_b.partial_cmp(&distance_a).unwrap_or(std::cmp::Ordering::Equal)
+      });
     let lookAt: Vec3 = cam.get_look_at_direction();
     for triangle in mesh {
-      let clipped_triangle_list = self.clip(*triangle, cam, lookAt);
+      // add "Clipping" avoid triangle bug due to the camera
+      let clipped_triangle_list = self.clip(triangle, cam, lookAt);
       
       for clipped_triangle in clipped_triangle_list {
-        // face culling
         let line1 : Vec3 = clipped_triangle.v2 - clipped_triangle.v1;
         let line2 : Vec3 = clipped_triangle.v3 - clipped_triangle.v1;
         let surface_normal: Vec3 = cross_prod(line1, line2);
-
+        
+        // add "Face-Culling" to reduce the number of triangle drawn
         if true || dot(surface_normal, clipped_triangle.v1 - cam.position) < 0.0 {
+          // add light based on the light source and the triangle position
           let light_char: char = light_source.diffuse_light(surface_normal, clipped_triangle.v1);
           let transformed_triangle = clipped_triangle.clone()
             .translate(-1.0 * cam.position)
@@ -274,6 +288,12 @@ impl LightSource {
     LightSource {
       light_gradient: vec!['.', ',', ';', 'l', 'a', '#', '@'],
       position: Vec3 { x: 0.0, y: 0.0, z: 0.0 }
+    }
+  }
+  pub fn at (position: &Vec3) -> LightSource {
+    LightSource {
+      light_gradient: vec!['.', ',', ';', 'l', 'a', '#', '@'],
+      position: *position
     }
   }
   pub fn diffuse_light (&self, normal_surface: Vec3, vertex: Vec3) -> char {
