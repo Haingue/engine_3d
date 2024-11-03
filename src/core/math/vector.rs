@@ -157,4 +157,13 @@ impl Vec3 {
     let z = -f32::sin(yaw) * self.x + f32::cos(yaw) * self.z;
     Vec3 {x, y: self.y, z}
   }
+
+  pub fn normalize (self) -> Vec3 {
+    let norm: f32 = f32::sqrt(self.x*self.x + self.y*self.y + self.z*self.z);
+    Vec3 {
+      x: self.x / norm,
+      y: self.y / norm,
+      z: self.z / norm
+    }
+  }
 }

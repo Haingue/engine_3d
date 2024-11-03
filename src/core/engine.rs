@@ -1,10 +1,10 @@
-use std::{io::{self}, ops::{Add, AddAssign}};
+use std::{io::{self}, ops::{Add, AddAssign, Mul}};
 
 use crossterm::event::{read, Event, KeyCode, KeyModifiers};
 
 use crate::core::math::math::{dot, line_plane_intersection};
 
-use super::math::{vector::{Vec2, Vec3}, triangle::{Triangle2D, Triangle3D}};
+use super::math::{math::cross_prod, triangle::{Triangle2D, Triangle3D}, vector::{Vec2, Vec3}};
 
 #[derive(Debug)]
 pub struct Engine {
@@ -86,7 +86,7 @@ impl Engine {
   }
 
   pub fn clip (&mut self, triangle: Triangle3D, cam: &Camera, normal_plane: Vec3) -> Vec<Triangle3D> {
-    fn inZ (normal_plane: Vec3, normal_point: Vec3, triangle: Triangle3D) -> (Vec<Vec3>, Vec<Vec3>) {
+    fn inZ (normal_plane: Vec3, normal_point: Vec3, triangle: Triangle3D) -> (Vec<Vec3>, Vec<Vec3>, bool) {
       let mut out: Vec<Vec3> = vec![];
       let mut in_: Vec<Vec3> = vec![];
       let vert1 = dot(normal_point - triangle.v1, normal_plane);
@@ -107,37 +107,73 @@ impl Engine {
       } else {
         in_.push(triangle.v3)
       }
-      return (out, in_);
+      return (out, in_, vert1*vert3 > 0.0);
     }
     let z_near: Vec3 = cam.position + 0.1 * normal_plane;
-    let (out, in_) = inZ(normal_plane, z_near, triangle);
+    let (out, in_, is_inverted) = inZ(normal_plane, z_near, triangle);
     if out.len() == 0 {
-      return vec!(triangle);
+      return vec![triangle];
     } else if out.len() == 3 {
         return vec![];
-    } else if out.len() == 2 {
-        let intersection0 = line_plane_intersection(normal_plane, z_near, triangle.v1, triangle.v2);
-        // TODO
-        panic!("TODO");
+    } else if out.len() == 1 {
+      let collision0 = line_plane_intersection(normal_plane, z_near, out[0], in_[0]);
+      let collision1 = line_plane_intersection(normal_plane, z_near, out[0], in_[1]);
+      if is_inverted {
+        return vec![
+          Triangle3D::new(collision1, in_[1], collision0),
+          Triangle3D::new(collision0, in_[1], in_[0]),
+        ];
+      } else {
+        return vec![
+          Triangle3D::new(collision0, in_[0], collision1),
+          Triangle3D::new(collision1, in_[0], in_[1]),
+        ];
       }
-      panic!("TODO");
+    } else if out.len() == 2 {
+      if is_inverted {
+        return vec![
+          Triangle3D::new(
+            line_plane_intersection(normal_plane, z_near, out[0], in_[0]),
+            in_[0],
+            line_plane_intersection(normal_plane, z_near, out[1], in_[0]),
+          )
+        ];
+
+      } else {
+        return vec![
+          Triangle3D::new(
+            line_plane_intersection(normal_plane, z_near, out[0], in_[0]),
+            line_plane_intersection(normal_plane, z_near, out[1], in_[0]),
+            in_[0]
+          )
+        ];
+      }
+    }
+    panic!("TODO");
   }
 
-  pub fn put_mesh (&mut self, mesh: &Vec<Triangle3D>, cam: &Camera) {
-    // TODO order, clipping, color
+  pub fn put_mesh (&mut self, mesh: &Vec<Triangle3D>, cam: &Camera, light_source: &LightSource) {
+    let lookAt: Vec3 = cam.get_look_at_direction();
     for triangle in mesh {
-      let transformed_triangle = triangle.clone()
-      // let clipped_triangle_list = clip();
+      let clipped_triangle_list = self.clip(*triangle, cam, lookAt);
       
-      // for clipped_triangle in clipped_triangle_list {
-        // let transformed_triangle = clipped_triangle.clone()
-          .translate(-1.0 * cam.position)
-          .rotation_y(cam.yaw)
-          .rotation_x(cam.pitch)
-          .projection(cam.focal_length)
-          .toScreen(self);
-        self.put_triangle(&transformed_triangle, '@');
-      // }
+      for clipped_triangle in clipped_triangle_list {
+        // face culling
+        let line1 : Vec3 = clipped_triangle.v2 - clipped_triangle.v1;
+        let line2 : Vec3 = clipped_triangle.v3 - clipped_triangle.v1;
+        let surface_normal: Vec3 = cross_prod(line1, line2);
+
+        if true || dot(surface_normal, clipped_triangle.v1 - cam.position) < 0.0 {
+          let light_char: char = light_source.diffuse_light(surface_normal, clipped_triangle.v1);
+          let transformed_triangle = clipped_triangle.clone()
+            .translate(-1.0 * cam.position)
+            .rotation_y(cam.yaw)
+            .rotation_x(cam.pitch)
+            .projection(cam.focal_length)
+            .toScreen(self);
+          self.put_triangle(&transformed_triangle, light_char);
+        }
+      }
     }
   }
 }
@@ -158,17 +194,20 @@ impl Camera {
     }
     Camera {position, pitch, yaw, focal_length}
   }
-  pub fn get_look_at_direction () -> Vec3 {
-    panic!("Not yet implemented")
+  pub fn get_look_at_direction (&self) -> Vec3 {
+    Vec3 {
+      x: (-f32::sin(self.yaw)*f32::cos(self.pitch)),
+      y: (f32::sin(self.pitch)),
+      z: (f32::cos(self.yaw)*f32::cos(self.pitch)) }
   }
-  pub fn get_forward_direction (&mut self) -> Vec3 {
+  pub fn get_forward_direction (&self) -> Vec3 {
     Vec3 {
       x: -f32::sin(self.yaw),
       y: 0.0,
       z: f32::cos(self.yaw)
     }
   }
-  pub fn get_right_direction (&mut self) -> Vec3 {
+  pub fn get_right_direction (&self) -> Vec3 {
     Vec3 {
       x: f32::cos(self.yaw), 
       y: 0.0,
@@ -222,5 +261,30 @@ impl Camera {
       _ => {},
     }
     Ok(())
+  }
+}
+
+pub struct LightSource {
+  light_gradient: Vec<char>,
+  pub position: Vec3,
+}
+
+impl LightSource {
+  pub fn new () -> LightSource {
+    LightSource {
+      light_gradient: vec!['.', ',', ';', 'l', 'a', '#', '@'],
+      position: Vec3 { x: 0.0, y: 0.0, z: 0.0 }
+    }
+  }
+  pub fn diffuse_light (&self, normal_surface: Vec3, vertex: Vec3) -> char {
+    let light_direction: Vec3 = self.position - vertex;
+    let intensity: f32 = dot(light_direction.normalize(), normal_surface.normalize());
+    if intensity >= 0.0 {
+      let char_number: f32 = self.light_gradient.len() as f32 - 1.0;
+      let symbol_idx_real: f32 = intensity * (char_number);
+      let symbol_idx: usize = symbol_idx_real.round() as usize;
+      return self.light_gradient[symbol_idx]
+    }
+    return '.'
   }
 }

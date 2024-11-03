@@ -1,6 +1,7 @@
 pub mod core;
 pub mod tools;
 
+use core::engine::LightSource;
 use std::time::Duration;
 use std::{io, time};
 use std::thread::sleep;
@@ -71,7 +72,7 @@ fn demo_2 (engine: &mut Engine) {
         sleep(time::Duration::from_millis(10))
     }
 }
-
+/*
 fn demo_3 (engine: &mut Engine) {
     let mut triangle_1 = Triangle3D::new(
         Vec3::new( -0.5,    -0.5,   1.0),
@@ -199,7 +200,7 @@ fn demo_6 (engine: &mut Engine) {
         engine.draw();
     }
 }
-
+*/
 fn demo_7 (engine: &mut Engine) -> io::Result<()> {
     let mut carre = vec![
         Triangle3D::new(
@@ -210,9 +211,34 @@ fn demo_7 (engine: &mut Engine) -> io::Result<()> {
         Vec3::new(-0.5,    -0.5,   1.0),
         Vec3::new( 0.5,     0.5,   1.0),
         Vec3::new( 0.5,    -0.5,   1.0)),
+        Triangle3D::new(
+        Vec3::new(-0.5,    -0.5,   4.0),
+        Vec3::new(-0.5,     0.5,   4.0),
+        Vec3::new( 0.5,     0.5,   4.0)),
+        Triangle3D::new(
+        Vec3::new(-0.5,    -0.5,   4.0),
+        Vec3::new( 0.5,     0.5,   4.0),
+        Vec3::new( 0.5,    -0.5,   4.0)),
+        Triangle3D::new(
+        Vec3::new(-0.5,    -0.5,   1.0),
+        Vec3::new(0.5,     -0.5,   1.0),
+        Vec3::new(0.5,     -0.5,   4.0)),
+        Triangle3D::new(
+        Vec3::new(-0.5,    -0.5,   1.0),
+        Vec3::new(-0.5,    -0.5,   4.0),
+        Vec3::new(0.5,     -0.5,   4.0)),
+        Triangle3D::new(
+        Vec3::new(-0.5,     0.5,   1.0),
+        Vec3::new(0.5,      0.5,   1.0),
+        Vec3::new(0.5,      0.5,   4.0)),
+        Triangle3D::new(
+        Vec3::new(-0.5,     0.5,   1.0),
+        Vec3::new(-0.5,     0.5,   4.0),
+        Vec3::new(0.5,      0.5,   4.0)),
     ];
     let mut cam = Camera { position: Vec3 {x: 0.0, y:0.0, z: 0.0 }, pitch: 0.0, yaw: 0.0, focal_length: 1.0 };
     let mut last: Instant = Instant::now();
+    let light_source: LightSource = LightSource::new();
     loop {
         let current_time: Instant = Instant::now();
         let delta_time: f32 = (current_time - last).as_millis() as f32;
@@ -222,7 +248,7 @@ fn demo_7 (engine: &mut Engine) -> io::Result<()> {
         if poll(Duration::from_millis(10))? {
             cam.move_from_inputs(delta_time);
         }
-        engine.put_mesh(&carre, &cam);
+        engine.put_mesh(&carre, &cam, &light_source);
         engine.draw();
         log(format!("yaw: {:?}, pitch: {:?}, position: {:?}, delta_time= {:?}, current_time={:?}", cam.yaw, cam.pitch, cam.position, delta_time, (current_time - last).as_millis() as f32));
     }

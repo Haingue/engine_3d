@@ -14,7 +14,12 @@ impl Configuration {
         buffer_size: w * (h - 0)
       }
     } else {
-      panic!("Unable to get term size !")
+      // panic!("Unable to get term size !")
+      Configuration {
+        width: 700,
+        height: 500 - 0,
+        buffer_size: 700 * (500 - 0)
+      }
     }
   }
   pub const fn empty () -> Configuration {
