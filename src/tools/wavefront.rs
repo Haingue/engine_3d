@@ -9,7 +9,9 @@ use crate::core::math::{
     vector::Vec3,
 };
 
-pub fn read_object_file(path: &Path) -> Result<Vec<Triangle3D>> {
+use super::logger::Logger;
+
+pub fn read_object_file(path: &Path, logger: &Logger) -> Result<Vec<Triangle3D>> {
     let mut triangles: Vec<Triangle3D> = vec![];
 
     let file = File::open(path)?;
@@ -27,7 +29,7 @@ pub fn read_object_file(path: &Path) -> Result<Vec<Triangle3D>> {
 
         match tokens.get(0) {
             Some(&"v") => {
-                println!("vextex: {}", line);
+                logger.log(format!("vextex: {}", line));
                 if let [_, x, y, z] = &tokens[..] {
                     let vertex = Vec3 {
                         x: x.parse()
@@ -41,7 +43,7 @@ pub fn read_object_file(path: &Path) -> Result<Vec<Triangle3D>> {
                 }
             }
             Some(&"f") => {
-                println!("face: {}", line);
+                logger.log(format!("face: {}", line));
                 let face: std::result::Result<Vec<usize>, String> = tokens[1..]
                     .iter()
                     .fold(Ok(vec![]), |acc, &index| {

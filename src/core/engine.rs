@@ -272,6 +272,11 @@ impl Camera {
           _ => {}
         }
       },
+      Event::Mouse(event) => {},
+      Event::Paste(data) => {},
+      Event::Resize(width, height) => {},
+      Event::FocusGained => {},
+      Event::FocusLost => {},
       _ => {},
     }
     Ok(())
