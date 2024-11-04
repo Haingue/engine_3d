@@ -1,3 +1,10 @@
 {
-  "rust-analyzer.linkedProjects": ["Cargo.toml"]
+  "rust-analyzer.linkedProjects": [
+    "Cargo.toml"
+  ],
+  "workbench.colorCustomizations": {
+    "activityBar.background": "#FFA07A",
+    "titleBar.activeBackground": "#FFF1EB",
+    "titleBar.activeForeground": "#320E00"
+  }
 }

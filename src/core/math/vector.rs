@@ -105,6 +105,34 @@ impl ops::Add<Vec3> for Vec3 {
     }
   }
 }
+impl ops::AddAssign<Vec3> for Vec3 {
+  fn add_assign(&mut self, v_rhs: Vec3) {
+    *self = Vec3 {
+      x: self.x + v_rhs.x,
+      y: self.y + v_rhs.y,
+      z: self.z + v_rhs.z
+    };
+  }
+}
+impl ops::Sub<Vec3> for Vec3 {
+  type Output = Vec3;
+  fn sub(self, v_rhs: Vec3) -> Self::Output {
+    Vec3 {
+      x: self.x - v_rhs.x,
+      y: self.y - v_rhs.y,
+      z: self.z - v_rhs.z
+    }
+  }
+}
+impl ops::SubAssign<Vec3> for Vec3 {
+  fn sub_assign(&mut self, v_rhs: Vec3) {
+    *self = Vec3 {
+      x: self.x - v_rhs.x,
+      y: self.y - v_rhs.y,
+      z: self.z - v_rhs.z
+    };
+  }
+}
 
 impl Vec3 {
   pub fn new (x: f32, y:f32, z:f32) -> Vec3 {
@@ -128,5 +156,22 @@ impl Vec3 {
     let x = f32::cos(yaw) * self.x + f32::sin(yaw) * self.z;
     let z = -f32::sin(yaw) * self.x + f32::cos(yaw) * self.z;
     Vec3 {x, y: self.y, z}
+  }
+
+  pub fn length (self) -> f32 {
+    f32::sqrt(self.x*self.x + self.y*self.y + self.z*self.z)
+  }
+
+  pub fn length2 (self) -> f32 {
+    self.x*self.x + self.y*self.y + self.z*self.z
+  }
+
+  pub fn normalize (self) -> Vec3 {
+    let norm: f32 = self.length();
+    Vec3 {
+      x: self.x / norm,
+      y: self.y / norm,
+      z: self.z / norm
+    }
   }
 }
