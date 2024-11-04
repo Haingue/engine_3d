@@ -1,28 +1,29 @@
-use std::{cmp::Ordering, io::{self}, ops::{Add, AddAssign, Mul}};
+use std::{cmp::Ordering, io::{self}, ops::{Add, AddAssign, Mul}, time::{Duration, Instant}};
 
-use crossterm::event::{read, Event, KeyCode, KeyModifiers};
+use crossterm::event::{poll, read, Event, KeyCode, KeyModifiers};
 
-use crate::core::math::math::{dot, line_plane_intersection};
+use crate::{core::math::math::{dot, line_plane_intersection}, tools::logger::{self, Logger}};
 
 use super::math::{math::cross_prod, triangle::{Triangle2D, Triangle3D}, vector::{Vec2, Vec3}};
 
 #[derive(Debug)]
-pub struct Engine {
+pub struct Engine<'a> {
   pub width: usize,
   pub height: usize,
   pub pixel_ratio: usize,
   pub pixel_buffer_size: usize,
-  pub pixel_buffer: Vec<char>
+  pub pixel_buffer: Vec<char>,
+  pub logger: &'a Logger
 }
 
-impl ToString for Engine {
+impl ToString for Engine<'_> {
     fn to_string(&self) -> String {
         format!("Engine [width={}, height={}, pixel_buffer_size={}]", self.width, self.height, self.pixel_buffer_size)
     }
 }
 
-impl Engine {
-  pub fn new (width: usize, height: usize) -> Engine {
+impl Engine<'_> {
+  pub fn new (width: usize, height: usize, logger: &Logger) -> Engine {
     if width < 1 || height < 1 {
       panic!("The width or height must be upper than 0");
     }
@@ -31,7 +32,8 @@ impl Engine {
       height: height.clone(),
       pixel_ratio: 29/13,
       pixel_buffer_size: width * height,
-      pixel_buffer: vec![' ' ; width * height]
+      pixel_buffer: vec![' ' ; width * height],
+      logger
     }
   }
 
@@ -190,6 +192,26 @@ impl Engine {
       }
     }
   }
+
+  pub fn play_loop (&mut self, object: Vec<Triangle3D>) -> io::Result<()> {
+    let mut cam = Camera { position: Vec3 {x: 1.0, y: 0.0, z: -1.0 }, pitch: 0.1, yaw: 0.5, focal_length: 1.0 };
+    let mut last: Instant = Instant::now();
+    let light_source: LightSource = LightSource::at(&Vec3::new(5.0, 5.0, 5.0));
+    loop {
+      let current_time: Instant = Instant::now();
+      let delta_time: f32 = (current_time - last).as_millis() as f32;
+      last = current_time;
+
+      self.clear(' ');
+      if poll(Duration::from_millis(10))? {
+        cam.move_from_inputs(delta_time);
+      }
+      self.put_mesh(object.clone(), &cam, &light_source);
+      self.draw();
+      self.logger.log(format!("yaw: {:?}, pitch: {:?}, position: {:?}, delta_time= {:?}, current_time={:?}", cam.yaw, cam.pitch, cam.position, delta_time, (current_time - last).as_millis() as f32));
+    }
+  }
+
 }
 
 
