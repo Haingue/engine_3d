@@ -27,5 +27,5 @@ pub fn line_plane_intersection (normal_plane: Vec3, normal_point: Vec3, v1: Vec3
   let w: Vec3 = v1 - normal_point;
   let si: f32 = - dot(normal_plane, w) / dot_p;
   u = si*u;
-  (v1 + u)
+  v1 + u
 }

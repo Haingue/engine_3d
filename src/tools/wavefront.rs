@@ -12,8 +12,6 @@ use crate::core::math::{
 use super::logger::Logger;
 
 pub fn read_object_file(path: &Path, logger: &Logger) -> Result<Vec<Triangle3D>> {
-    let mut triangles: Vec<Triangle3D> = vec![];
-
     let file = File::open(path)?;
     let reader = BufReader::new(file);
     let mut vertices = Vec::new();
@@ -65,7 +63,7 @@ pub fn read_object_file(path: &Path, logger: &Logger) -> Result<Vec<Triangle3D>>
 
                 match face {
                     Ok(face_indices) => faces.push(face_indices),
-                    Err(e) => (),
+                    _ => ()
                 }
             }
             _ => {}
