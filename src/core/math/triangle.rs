@@ -25,11 +25,11 @@ impl Triangle2D {
     self.v3.x = x;
     self.v3.y = y;
   }
-  pub fn toScreen (&mut self, engine: &Engine) -> Triangle2D {
+  pub fn to_screen (&mut self, engine: &Engine) -> Triangle2D {
     Triangle2D {
-      v1: self.v1.toScreen(engine),
-      v2: self.v2.toScreen(engine),
-      v3: self.v3.toScreen(engine)
+      v1: self.v1.to_screen(engine),
+      v2: self.v2.to_screen(engine),
+      v3: self.v3.to_screen(engine)
     }
   }
 }

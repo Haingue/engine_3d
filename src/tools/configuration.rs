@@ -1,4 +1,4 @@
-#[derive(Debug)]
+#[derive(Default, Debug)]
 pub struct Configuration {
   pub width: usize,
   pub height: usize,

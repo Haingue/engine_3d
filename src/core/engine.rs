@@ -1,10 +1,8 @@
-use std::{cmp::Ordering, io::{self}, ops::{Add, AddAssign, Mul}, time::{Duration, Instant}};
-
+use std::{io::{self}, time::{Duration, Instant}};
 use crossterm::event::{poll, read, Event, KeyCode, KeyModifiers};
 
-use crate::{core::math::math::{dot, line_plane_intersection}, tools::logger::{self, Logger}};
-
 use super::math::{math::cross_prod, triangle::{Triangle2D, Triangle3D}, vector::{Vec2, Vec3}};
+use crate::{core::math::math::{dot, line_plane_intersection}, tools::logger::Logger};
 
 #[derive(Debug)]
 pub struct Engine<'a> {
@@ -88,7 +86,7 @@ impl Engine<'_> {
   }
 
   pub fn clip (&mut self, triangle: Triangle3D, cam: &Camera, normal_plane: Vec3) -> Vec<Triangle3D> {
-    fn inZ (normal_plane: Vec3, normal_point: Vec3, triangle: Triangle3D) -> (Vec<Vec3>, Vec<Vec3>, bool) {
+    fn in_z (normal_plane: Vec3, normal_point: Vec3, triangle: Triangle3D) -> (Vec<Vec3>, Vec<Vec3>, bool) {
       let mut out: Vec<Vec3> = vec![];
       let mut in_: Vec<Vec3> = vec![];
       let vert1 = dot(normal_point - triangle.v1, normal_plane);
@@ -112,7 +110,7 @@ impl Engine<'_> {
       return (out, in_, vert1*vert3 > 0.0);
     }
     let z_near: Vec3 = cam.position + 0.1 * normal_plane;
-    let (out, in_, is_inverted) = inZ(normal_plane, z_near, triangle);
+    let (out, in_, is_inverted) = in_z(normal_plane, z_near, triangle);
     if out.len() == 0 {
       return vec![triangle];
     } else if out.len() == 3 {
@@ -167,10 +165,10 @@ impl Engine<'_> {
         let distance_b = self.distance_triangle_camera(b, cam);
         distance_b.partial_cmp(&distance_a).unwrap_or(std::cmp::Ordering::Equal)
       });
-    let lookAt: Vec3 = cam.get_look_at_direction();
+    let look_at: Vec3 = cam.get_look_at_direction();
     for triangle in mesh {
       // add "Clipping" avoid triangle bug due to the camera
-      let clipped_triangle_list = self.clip(triangle, cam, lookAt);
+      let clipped_triangle_list = self.clip(triangle, cam, look_at);
       
       for clipped_triangle in clipped_triangle_list {
         let line1 : Vec3 = clipped_triangle.v2 - clipped_triangle.v1;
@@ -186,7 +184,7 @@ impl Engine<'_> {
             .rotation_y(cam.yaw)
             .rotation_x(cam.pitch)
             .projection(cam.focal_length)
-            .toScreen(self);
+            .to_screen(self);
           self.put_triangle(&transformed_triangle, light_char);
         }
       }
@@ -204,7 +202,12 @@ impl Engine<'_> {
 
       self.clear(' ');
       if poll(Duration::from_millis(10))? {
-        cam.move_from_inputs(delta_time);
+        match cam.move_from_inputs(delta_time) {
+          Ok(()) => (),
+          Err(error) => {
+            self.logger.log(format!("Input error: {:?}", error));
+          }
+        }
       }
       self.put_mesh(object.clone(), &cam, &light_source);
       self.draw();
@@ -285,7 +288,7 @@ impl Camera {
             self.position += right_direction*0.01*delta_time;
           },
           KeyCode::Char(' ') => {
-            if (event.modifiers == KeyModifiers::CONTROL) {
+            if event.modifiers == KeyModifiers::CONTROL {
               self.position.y -= 0.01*delta_time;
             } else {
               self.position.y += 0.01*delta_time;
@@ -294,11 +297,11 @@ impl Camera {
           _ => {}
         }
       },
-      Event::Mouse(event) => {},
-      Event::Paste(data) => {},
-      Event::Resize(width, height) => {},
-      Event::FocusGained => {},
-      Event::FocusLost => {},
+      // Event::Mouse(event) => {},
+      // Event::Paste(data) => {},
+      // Event::Resize(width, height) => {},
+      // Event::FocusGained => {},
+      // Event::FocusLost => {},
       _ => {},
     }
     Ok(())

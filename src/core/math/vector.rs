@@ -49,7 +49,7 @@ impl Vec2 {
   pub fn new (x: f32, y:f32) -> Vec2 {
     Vec2 { x, y }
   }
-  pub fn toScreen (&mut self, engine: &Engine) -> Vec2 {
+  pub fn to_screen (&mut self, engine: &Engine) -> Vec2 {
     let height = engine.height as f32;
    let width = engine.width as f32;
     Vec2 {
