@@ -1,7 +1,7 @@
 use std::{io::{self}, time::{Duration, Instant}};
 use crossterm::event::{poll, read, Event, KeyCode, KeyModifiers};
 
-use super::math::{math::cross_prod, triangle::{Triangle2D, Triangle3D}, vector::{Vec2, Vec3}};
+use super::{math::{math::cross_prod, triangle::{Triangle2D, Triangle3D}, vector::{Vec2, Vec3}}, player::player_action};
 use crate::{core::math::math::{dot, line_plane_intersection}, tools::logger::Logger};
 
 #[derive(Debug)]
@@ -191,10 +191,11 @@ impl Engine<'_> {
     }
   }
 
-  pub fn play_loop (&mut self, object: Vec<Triangle3D>) -> io::Result<()> {
+  pub fn play_loop (&mut self, objects: Vec<Triangle3D>) -> io::Result<()> {
     let mut cam = Camera { position: Vec3 {x: -0.5, y: 0.5, z: -2.0 }, pitch: 0.0, yaw: 0.0, focal_length: 1.0 };
     let mut last: Instant = Instant::now();
     let mut light_source: LightSource = LightSource::at(&Vec3::new(5.0, 5.0, 5.0));
+    let mut triangles = objects.clone();
     loop {
       let current_time: Instant = Instant::now();
       let delta_time: f32 = (current_time - last).as_millis() as f32;
@@ -202,15 +203,9 @@ impl Engine<'_> {
 
       self.clear(' ');
       if poll(Duration::from_millis(10))? {
-        light_source.move_in_circle(delta_time);
-        match cam.move_from_inputs(delta_time) {
-          Ok(()) => (),
-          Err(error) => {
-            self.logger.log(format!("Input error: {:?}", error));
-          }
-        }
+        _ = player_action(&mut cam, &mut light_source, &mut triangles, delta_time);
       }
-      self.put_mesh(object.clone(), &cam, &light_source);
+      self.put_mesh(triangles.clone(), &cam, &light_source);
       self.draw();
       self.logger.log(format!("yaw: {:?}, pitch: {:?}, position: {:?}, delta_time= {:?}, current_time={:?}", cam.yaw, cam.pitch, cam.position, delta_time, (current_time - last).as_millis() as f32));
     }

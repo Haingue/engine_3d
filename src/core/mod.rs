@@ -1,3 +1,3 @@
 pub mod engine;
+pub mod player;
 pub mod math;
-pub mod movements;
