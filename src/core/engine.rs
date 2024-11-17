@@ -260,7 +260,7 @@ impl Camera {
       Event::Key(event) => {
         match event.code {
           KeyCode::Down => {
-            if self.pitch >= 1.57 {
+            if self.pitch > -1.57 {
               self.pitch -= 0.01*delta_time;
             }
           },
