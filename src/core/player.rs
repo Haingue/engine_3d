@@ -1,6 +1,6 @@
 use std::io;
 
-use crossterm::event::{read, Event, KeyCode, KeyModifiers};
+use crossterm::{event::{read, Event, KeyCode, KeyModifiers}, terminal::disable_raw_mode};
 
 use super::{engine::{Camera, LightSource}, math::triangle::Triangle3D};
 
@@ -44,6 +44,12 @@ pub fn player_action (camera: &mut Camera, light_source: &mut LightSource, objec
               camera.position.y -= 0.01*delta_time;
             } else {
               camera.position.y += 0.01*delta_time;
+            }
+          },
+          KeyCode::Char('c') => {
+            if event.modifiers == KeyModifiers::CONTROL {
+              disable_raw_mode().expect("Cannot enable raw mode");
+              std::process::exit(0)
             }
           },
           KeyCode::Char('r') => {

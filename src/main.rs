@@ -5,6 +5,7 @@ use std::path::Path;
 use std::{env, io};
 
 use crossterm::event::{read, Event, KeyCode};
+use crossterm::terminal::enable_raw_mode;
 use getopts::Options;
 use tools::logger::Logger;
 
@@ -53,6 +54,8 @@ fn main() {
 
   logger.log(format!("Triangle: {:?}", object));
   let _ = wait_key();
+
+  enable_raw_mode().expect("Cannot enable raw mode");
   let _ = engine.play_loop(object);
 }
 
